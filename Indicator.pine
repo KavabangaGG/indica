@@ -1,0 +1,71 @@
+//@version=5
+indicator("Midnight Bias → Telegram Alert + TP/SL + Ticker/Side (05–07 NYT)", overlay=true)
+
+// Параметры
+testMode = input.bool(false, "Test mode: send test setup on last bar")
+tpPerc   = input.float(1.5,   "Take Profit %", step=0.1)
+slPerc   = input.float(0.5,   "Stop Loss %",   step=0.1)
+
+// Таймстемпы NY Time
+f_ts(h, m) => timestamp("America/New_York", year, month, dayofmonth, h, m)
+midnight   = f_ts(0,0)
+rangeStart = f_ts(5,0)
+rangeEnd   = f_ts(7,0)
+
+// Переменные для статистики
+var float midPrice  = na
+var int   totalBars = 0
+var int   aboveBars = 0
+var bool  signaled  = false
+
+// 1) В 00:00 фиксируем цену открытия и обнуляем счётчики
+if time >= midnight and time[1] < midnight
+    midPrice  := open
+    totalBars := 0
+    aboveBars := 0
+    signaled  := false
+
+// 2) Считаем бары 05:00–07:00
+if time >= rangeStart and time < rangeEnd
+    totalBars += 1
+    if close > midPrice
+        aboveBars += 1
+
+// 3) На первом баре ≥07:00 проверяем условие
+longSignal = false
+if time >= rangeEnd and time[1] < rangeEnd and not signaled
+    if totalBars > 0 and aboveBars / totalBars > 0.5
+        longSignal := true
+    signaled := true
+
+// Функция отправки setup-уведомления
+sendSetup(side) =>
+    tpPrice = midPrice * (1 + tpPerc/100)
+    slPrice = midPrice * (1 - slPerc/100)
+    // собираем JSON с HTML-разметкой
+    payload = "{\"chat_id\":\"-1002162702173\",\"parse_mode\":\"HTML\",\"text\":\"" +
+      "<b>📊 SETUP</b>\\n" +
+      "Символ: <code>" + syminfo.ticker + "</code>\\n" +
+      "Направление: <b>" + side + "</b>\\n" +
+      "Entry: <code>" + str.tostring(midPrice, format.mintick) + "</code>\\n" +
+      "TP:    <code>" + str.tostring(tpPrice,   format.mintick) + "</code>\\n" +
+      "SL:    <code>" + str.tostring(slPrice,   format.mintick) + "</code>\\n" +
+      '<b>⚠️ Risk Reminder:</b> Always cap your loss to <b>1% of your account</b> per trade to protect your capital.' +
+      '"}'
+    alert(payload, alert.freq_once_per_bar_close)
+
+// 4) При реальном сигнале шлём Long-setup
+if longSignal
+    sendSetup("Long")
+
+// 5) Тестовый режим тоже шлёт полноценный сетап
+if testMode and barstate.islast
+    sendSetup("TEST")
+
+// 6) Визуализация на графике
+plotshape(longSignal, title="LONG", style=shape.labelup,
+     location=location.belowbar, text="LONG", textcolor=color.white,
+     size=size.small, color=color.green)
+plotshape(testMode and barstate.islast, title="TEST", style=shape.labelup,
+     location=location.belowbar, text="TEST", textcolor=color.white,
+     size=size.small, color=color.orange)
