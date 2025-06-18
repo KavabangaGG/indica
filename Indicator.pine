@@ -87,7 +87,7 @@ if endSession
             deltaText = str.tostring(deltaSum >= 0 ? "+" + str.tostring(deltaSum, format.volume) : str.tostring(deltaSum, format.volume))
             lblColor  = deltaSum >= 0 ? color.green : color.red
             label.new(midBar, pocLevel, deltaText,
-                      yloc=yloc.price, style=label.style_none,
+                      yloc=yloc.price, style=label.style_label_down,
                       color=color.new(color.black, 100), textcolor=lblColor)
         // удаляем слишком старые сессии
         sessDurationHours = (endHour - startHour) + (endMinute - startMinute) / 60.0
