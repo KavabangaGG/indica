@@ -3,6 +3,7 @@
 indicator("Session POC Lines (Manual Volume Profile)", overlay=true, max_bars_back=5000)
 
 // === Inputs
+autoClear        = input.bool(false, "Auto Clear Crossed Lines")
 startHour        = input.int(9,      "Session Start Hour",    minval=0, maxval=23)
 startMinute      = input.int(0,      "Session Start Minute",  minval=0, maxval=59)
 endHour          = input.int(12,     "Session End Hour",      minval=0, maxval=23)
@@ -118,9 +119,21 @@ if array.size(pocLines) > 0
                     line.set_extend(lnC, extend.none)
                     array.set(pocCrossCount, i, 2)
                     array.set(pocActive, i, false)
+                    if autoClear
+                        line.delete(lnC)
+                        array.remove(pocLines, i)
+                        array.remove(pocPrices, i)
+                        array.remove(pocActive, i)
+                        array.remove(pocCrossCount, i)
             else
                 if crossed
                     lnC = array.get(pocLines, i)
                     line.set_x2(lnC, bar_index)
                     line.set_extend(lnC, extend.none)
                     array.set(pocActive, i, false)
+                    if autoClear
+                        line.delete(lnC)
+                        array.remove(pocLines, i)
+                        array.remove(pocPrices, i)
+                        array.remove(pocActive, i)
+                        array.remove(pocCrossCount, i)
