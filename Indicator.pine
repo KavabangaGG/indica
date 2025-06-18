@@ -49,7 +49,11 @@ if endSession
             max_val := na(max_val) ? high[idxOff] : math.max(max_val, high[idxOff])
             min_val := na(min_val) ? low[idxOff]  : math.min(min_val, low[idxOff])
         // формируем бин по объёму
-        float step = (max_val - min_val) / bins
+        float range = max_val - min_val
+        if range <= 0
+            // нет диапазона — пропустить расчёт POC для этой сессии
+            continue
+        float step = range / bins
         float[] vol_bins = array.new_float(bins, 0.0)
         float deltaSum = 0.0
         for i = 0 to length - 1
